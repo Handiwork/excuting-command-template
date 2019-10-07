@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "The Root Schema",
+  "definitions": {
+    "templateFolderContent": {
+      "title": "Template Folder Content",
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/definitions/templateFolder"
+          },
+          {
+            "$ref": "#/definitions/template"
+          }
+        ]
+      }
+    },
+    "templateFolder": {
+      "title": "Template Folder",
+      "properties": {
+        "name": {
+          "title": "Template Folder Name",
+          "type": "string"
+        },
+        "children": {
+          "$ref": "#/definitions/templateFolderContent"
+        }
+      },
+      "not": {
+        "required": [
+          "value"
+        ]
+      }
+    },
+    "template": {
+      "title": "Template",
+      "description": "template definition",
+      "properties": {
+        "name": {
+          "title": "Template Name",
+          "type": "string"
+        },
+        "value": {
+          "title": "Template Pattern",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ]
+    }
+  },
+  "properties": {
+    "templates": {
+      "$ref": "#/definitions/templateFolderContent",
+      "title": "Templates"
+    }
+  }
+}

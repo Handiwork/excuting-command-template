@@ -1,0 +1,81 @@
+{
+	"name": "executing-command-template",
+	"displayName": "Executing Command Template",
+	"description": "Store command templates and run them as needed",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.38.0"
+	},
+	"publisher": "Handiwork",
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onCommand:cmdtpl.initialize",
+		"workspaceContains: **/.vscode/cmdtpl.json"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "cmdtpl.initialize",
+				"title": "Initialize Command Templates"
+			},
+			{
+				"command": "cmdtpl.usePathToRun",
+				"title": "Use Path to Run...",
+				"icon": {
+					"light": "./resources/light/run.svg",
+					"dark": "./resources/dark/run.svg"
+				}
+			}
+		],
+		"views": {
+			"explorer": [
+				{
+					"id": "commandTemplate",
+					"name": "Command Templates",
+					"when": "activeEditor"
+				}
+			]
+		},
+		"menus": {
+			"explorer/context": [
+				{
+					"command": "cmdtpl.usePathToRun",
+					"title": "Use File to Run...",
+					"group": "9_cmdtpl"
+				}
+			]
+		},
+		"jsonValidation": [
+			{
+				"fileMatch": ".vscode/cmdtpl.json",
+				"url": "./resources/config-schema.json"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "yarn run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"pretest": "yarn run compile",
+		"test": "node ./out/test/runTest.js"
+	},
+	"devDependencies": {
+		"@types/glob": "^7.1.1",
+		"@types/lodash": "^4.14.141",
+		"@types/mocha": "^5.2.6",
+		"@types/node": "^10.12.21",
+		"@types/vscode": "^1.38.0",
+		"glob": "^7.1.4",
+		"mocha": "^6.1.4",
+		"tslint": "^5.12.1",
+		"typescript": "^3.3.1",
+		"vscode-test": "^1.2.0"
+	},
+	"dependencies": {
+		"jsonc-parser": "^2.1.1",
+		"lodash": "^4.17.15"
+	}
+}
