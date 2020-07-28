@@ -14,18 +14,18 @@ export type TemplateFolderContent = Array<TemplateFolder | Template>;
 export interface TemplateFolderEntry {
   type: "templateFolder";
   templateFolder: TemplateFolder;
-  parent?: TemplateFolder;
+  parent?: TemplateFolderEntry;
 }
 
 export interface TemplateEntry {
   type: "template";
   template: Template;
-  parent?: TemplateFolder;
+  parent?: TemplateFolderEntry;
 }
 
 export type TEntry = TemplateEntry | TemplateFolderEntry;
 
-export function getEntry(data: Template | TemplateFolder, parent?: TemplateFolder): TEntry {
+export function getEntry(data: Template | TemplateFolder, parent?: TemplateFolderEntry): TEntry {
   if ((data as TemplateFolder).children) {
     return { type: "templateFolder", templateFolder: data as TemplateFolder, parent };
   } else {

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { TemplateQuickPickProvider } from "./TemplateQuickPickProvider";
+import { TemplateQuickPickProvider } from "./provider/TemplateQuickPickProvider";
 import { CommandBuilder } from './CommandBuilder';
 import { readFileSync } from 'fs';
 
@@ -13,7 +13,7 @@ export class TemplateRunner implements vscode.Disposable {
   }
 
   async runTemplateWithFilePath(resource?: vscode.Uri) {
-    let template = await this.quickPickProvider.input();
+    let template = await this.quickPickProvider.pickTemplate();
     if (!template) { return; }
     let builder = new CommandBuilder(template);
     let cmd = await builder.build(resource && resource.fsPath);
@@ -31,7 +31,7 @@ export class TemplateRunner implements vscode.Disposable {
   }
 
   async runTemplateWithFileContent(resource: vscode.Uri) {
-    let template = await this.quickPickProvider.input();
+    let template = await this.quickPickProvider.pickTemplate();
     if (!template) { return; }
     let builder = new CommandBuilder(template);
     let arg = readFileSync(resource.fsPath, { encoding: "utf-8" });

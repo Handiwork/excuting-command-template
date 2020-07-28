@@ -1,0 +1,8 @@
+{
+  "templates": [
+    {
+      "name": "export all to index.ts",
+      "value": "node D:\\programs\\js\\autumn-netease-music\\ui\\scripts\\sourceGenerators\\exportAll.js {}"
+    }
+  ]
+}
