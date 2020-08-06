@@ -1,7 +1,12 @@
 
 export interface Template {
   name: string;
-  value: string ;
+  value?: string;
+  children?: Template[]
+}
+
+export interface TemplateEntry{
+  
 }
 
 export interface TemplateFolder {
@@ -26,9 +31,8 @@ export interface TemplateEntry {
 export type TEntry = TemplateEntry | TemplateFolderEntry;
 
 export function getEntry(data: Template | TemplateFolder, parent?: TemplateFolderEntry): TEntry {
-  if ((data as TemplateFolder).children) {
+  if ((data as TemplateFolder).children)
     return { type: "templateFolder", templateFolder: data as TemplateFolder, parent };
-  } else {
+  else
     return { type: "template", template: data as Template, parent };
-  }
 }

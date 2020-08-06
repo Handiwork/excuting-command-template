@@ -4,21 +4,23 @@ import { readFileSync, existsSync, mkdirSync, writeFileSync } from "fs";
 import * as json from 'jsonc-parser';
 import * as lodash from "lodash";
 import { SnapshotEventEmitter } from "../util/SnapshotEventEmitter";
+import { DisposableProvider } from "../util/DisposableProvider";
 
 export const VSCODE_CONFIG_PATH = '.vscode';
 export const FILE_NAME = 'cmdtpl.json';
 
-export class WorkspaceConfigManager implements vscode.Disposable {
+export class WorkspaceConfigManager extends DisposableProvider {
 
   private _onConfigurationChanged = new SnapshotEventEmitter<Configuration>();
   private _currentFolder?: vscode.WorkspaceFolder;
-  private disposables: vscode.Disposable[] = [];
 
   onConfigurationChanged = this._onConfigurationChanged.event;
   public get configuration() { return this._onConfigurationChanged.snapshot; }
 
   constructor() {
-    vscode.window.onDidChangeActiveTextEditor((e) => this.onDidChangeActiveTextEditor(e), this.disposables);
+    super();
+
+    vscode.window.onDidChangeActiveTextEditor(this.onDidChangeActiveTextEditor, this, this.disposables);
     this.onDidChangeActiveTextEditor(vscode.window.activeTextEditor);
 
     let fsWatcher = vscode.workspace.createFileSystemWatcher(`**/${VSCODE_CONFIG_PATH}/${FILE_NAME}`);
@@ -27,7 +29,7 @@ export class WorkspaceConfigManager implements vscode.Disposable {
     this.disposables.push(fsWatcher);
   }
 
-  private onDidChangeActiveTextEditor(e: vscode.TextEditor | undefined) {
+  private onDidChangeActiveTextEditor(e?: vscode.TextEditor) {
     let folder = e && vscode.workspace.getWorkspaceFolder(e.document.uri);
     if (!isSameWorkspace(folder, this._currentFolder)) {
       this._currentFolder = folder;
@@ -38,19 +40,15 @@ export class WorkspaceConfigManager implements vscode.Disposable {
 
   private onConfigFileCreateOrChange(e: vscode.Uri) {
     let folder = vscode.workspace.getWorkspaceFolder(e);
-    if (isSameWorkspace(folder, this._currentFolder)) {
+    if (isSameWorkspace(folder, this._currentFolder))
       this._onConfigurationChanged.fire(new Configuration(folder));
-    }
-  }
 
-  dispose() {
-    this.disposables.forEach(d => d.dispose());
   }
 }
 
 function isSameWorkspace(a?: vscode.WorkspaceFolder, b?: vscode.WorkspaceFolder) {
-  if (a === b) { return true; }
-  if (!a || !b) { return false; }
+  if (a === b) return true;
+  if (!a || !b) return false;
   return a.uri.fsPath === b.uri.fsPath;
 }
 
@@ -61,7 +59,7 @@ export class Configuration {
   public configPath?: string;
 
   constructor(workspaceFolder?: vscode.WorkspaceFolder) {
-    if (!workspaceFolder) { return; }
+    if (!workspaceFolder) return;
     this.configPath = join(workspaceFolder.uri.fsPath, VSCODE_CONFIG_PATH, FILE_NAME);
     try {
       let text = readFileSync(this.configPath, { encoding: "utf8" });
@@ -86,10 +84,10 @@ export class Configuration {
    * @param value new value
    */
   update<T>(section: string, value: T) {
-    if (!this.configPath) { return; }
+    if (!this.configPath) return;
     lodash.set(this.config, section, value);
     let dir = dirname(this.configPath);
-    if (!existsSync(dir)) { mkdirSync(dir, { recursive: true }); }
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
     try {
       writeFileSync(this.configPath, this.config, { encoding: "utf8" });
     } catch (e) { }

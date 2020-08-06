@@ -1,55 +1,62 @@
 import * as vscode from 'vscode';
 import { TemplateQuickPickProvider } from "./provider/TemplateQuickPickProvider";
-import { CommandBuilder } from './CommandBuilder';
-import { readFileSync } from 'fs';
+import { promises as fsp } from 'fs';
+import { DisposableProvider } from './util/DisposableProvider';
+import { WorkspaceTemplateManager } from './config/WorkspaceTemplateManager';
+import { Template } from './Template';
 
-export class TemplateRunner implements vscode.Disposable {
+const PLACEHOLDER = /\{\s*\}/;
+const INDICATOR = "{__}";
 
-  private disposables: vscode.Disposable[] = [];
+export class TemplateRunner extends DisposableProvider {
 
-  constructor(private quickPickProvider: TemplateQuickPickProvider) {
-    vscode.tasks.onDidEndTask((e) => {
-    });
+  private quickPickProvider: TemplateQuickPickProvider;
+
+  constructor(manager: WorkspaceTemplateManager) {
+    super();
+    this.quickPickProvider = new TemplateQuickPickProvider(manager);
+  }
+
+  async buildCommand(template: Template, prefill?: string) {
+    let command = template.value;
+    if (prefill && PLACEHOLDER.test(command))
+      command = command.replace(PLACEHOLDER, prefill);
+
+    while (PLACEHOLDER.test(command)) {
+      let arg = await vscode.window.showInputBox({ prompt: command.replace(PLACEHOLDER, INDICATOR) });
+      if (!arg) return undefined;
+      command = command.replace(PLACEHOLDER, arg);
+    }
+    return command;
+  }
+
+  async executeTask(template: Template, type: string, cmd: string) {
+    const task = new vscode.Task(
+      {
+        type,
+        template
+      },
+      vscode.TaskScope.Workspace,
+      template.name,
+      template.name,
+      new vscode.ShellExecution(cmd));
+    vscode.tasks.executeTask(task);
   }
 
   async runTemplateWithFilePath(resource?: vscode.Uri) {
     let template = await this.quickPickProvider.pickTemplate();
-    if (!template) { return; }
-    let builder = new CommandBuilder(template);
-    let cmd = await builder.build(resource && resource.fsPath);
-    if (!cmd) { return; }
-    let task = new vscode.Task(
-      {
-        type: "Template Run",
-        template
-      },
-      vscode.TaskScope.Workspace,
-      template.name,
-      template.name,
-      new vscode.ShellExecution(cmd));
-    vscode.tasks.executeTask(task);
+    if (!template) return;
+    let cmd = await this.buildCommand(template, resource && resource.fsPath);
+    if (!cmd) return;
+    await this.executeTask(template, "Run Template With Path:", cmd);
   }
 
   async runTemplateWithFileContent(resource: vscode.Uri) {
     let template = await this.quickPickProvider.pickTemplate();
-    if (!template) { return; }
-    let builder = new CommandBuilder(template);
-    let arg = readFileSync(resource.fsPath, { encoding: "utf-8" });
-    let cmd = await builder.build(arg);
-    if (!cmd) { return; }
-    let task = new vscode.Task(
-      {
-        type: "Template Run",
-        template
-      },
-      vscode.TaskScope.Workspace,
-      template.name,
-      template.name,
-      new vscode.ShellExecution(cmd));
-    vscode.tasks.executeTask(task);
-  }
-
-  dispose() {
-    this.disposables.forEach(d => d.dispose());
+    if (!template) return;
+    let arg = await fsp.readFile(resource.fsPath, { encoding: "utf8" });
+    let cmd = await this.buildCommand(template, arg);
+    if (!cmd) return;
+    await this.executeTask(template, "Run Template With Content", cmd);
   }
 }

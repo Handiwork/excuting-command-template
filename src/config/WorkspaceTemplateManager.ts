@@ -6,10 +6,9 @@ import { SnapshotEventEmitter } from "../util/SnapshotEventEmitter";
 
 const TEMPLATES_SECTION = 'templates';
 
-export class WorkspaceTemplateManager implements vscode.Disposable {
+export class WorkspaceTemplateManager {
 
   private _onDidChangeTreeData = new SnapshotEventEmitter<TemplateFolderContent>();
-  private disposables: vscode.Disposable[] = [];
 
   get tree() { return this._onDidChangeTreeData.snapshot; }
   onDidChangeTreeData = this._onDidChangeTreeData.event;
@@ -35,8 +34,4 @@ export class WorkspaceTemplateManager implements vscode.Disposable {
     console.log('initialized');
   }
 
-
-  dispose() {
-    this.disposables.forEach(d => d.dispose());
-  }
 }

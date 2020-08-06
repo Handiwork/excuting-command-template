@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { WorkspaceTemplateManager } from '../config/WorkspaceTemplateManager';
 import { TemplateFolderContent, TEntry, getEntry, TemplateFolderEntry } from '../Template';
+import { DisposableProvider } from '../util/DisposableProvider';
 
 export interface TemplateQuickPickItem extends vscode.QuickPickItem {
   entry: TEntry;
@@ -13,18 +14,18 @@ export interface FolderQuickPickItem extends vscode.QuickPickItem {
 }
 
 function getTemplatePickItem(entry: TEntry): TemplateQuickPickItem {
-  if (entry.type === 'templateFolder') {
+  if (entry.type === 'templateFolder')
     return {
       label: `$(file-directory)  ${entry.templateFolder.name}`,
       entry
     };
-  } else {
+  else
     return {
       label: `$(play)  ${entry.template.name}`,
       description: entry.template.value,
       entry
     };
-  }
+
 }
 
 function getFolderPickItem(folder: TemplateFolderEntry): FolderQuickPickItem {
@@ -34,12 +35,12 @@ function getFolderPickItem(folder: TemplateFolderEntry): FolderQuickPickItem {
   };
 }
 
-export class TemplateQuickPickProvider implements vscode.Disposable {
+export class TemplateQuickPickProvider extends DisposableProvider {
 
-  private disposables: vscode.Disposable[] = [];
   private tree?: TemplateFolderContent;
 
   constructor(templateManager: WorkspaceTemplateManager) {
+    super();
     templateManager.onDidChangeTreeData(() => this.tree = templateManager.tree, this, this.disposables);
     this.tree = templateManager.tree;
   }
@@ -48,8 +49,8 @@ export class TemplateQuickPickProvider implements vscode.Disposable {
     let t: TemplateFolderEntry | undefined;
     while (1) {
       let item = await vscode.window.showQuickPick(this.getTemplateItems(t));
-      if (!item) { return undefined; }
-      if (item.entry.type === 'template') { return item.entry.template; }
+      if (!item) return undefined;
+      if (item.entry.type === 'template') return item.entry.template;
       t = item.entry;
     }
   }
@@ -58,39 +59,33 @@ export class TemplateQuickPickProvider implements vscode.Disposable {
     let t: TemplateFolderEntry | undefined;
     while (1) {
       let item = await vscode.window.showQuickPick(this.getFolderItems(t));
-      if (!item) { return undefined; }
-      if (item.action === 'current') { return item.folder; }
-      if (item.action === 'parent') { t = t && t.parent; }
+      if (!item) return undefined;
+      if (item.action === 'current') return item.folder;
+      if (item.action === 'parent') t = t && t.parent;
       t = item.folder;
     }
   }
 
   private getFolderItems(folder?: TemplateFolderEntry): Array<FolderQuickPickItem> {
     if (!folder) {
-      if (!this.tree) { return []; }
+      if (!this.tree) return [];
       return this.tree
         .map((t) => getEntry(t))
         .filter((e) => e.type === 'templateFolder')
         .map((e) => getFolderPickItem(e as TemplateFolderEntry));
-    } else {
+    } else
       return folder.templateFolder.children
         .map((t) => getEntry(t, folder))
         .filter((e) => e.type === 'templateFolder')
         .map((e) => getFolderPickItem(e as TemplateFolderEntry));
-    }
   }
-
 
   private getTemplateItems(folder?: TemplateFolderEntry): Array<TemplateQuickPickItem> {
     if (!folder) {
-      if (!this.tree) { return []; }
+      if (!this.tree) return [];
       return this.tree.map((t) => getEntry(t)).map((e) => getTemplatePickItem(e));
-    } else {
+    } else
       return folder.templateFolder.children.map((t) => getEntry(t, folder)).map((e) => getTemplatePickItem(e));
-    }
   }
 
-  dispose() {
-    this.disposables.forEach(d => d.dispose());
-  }
 }
